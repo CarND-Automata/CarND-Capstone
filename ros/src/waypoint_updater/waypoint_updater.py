@@ -64,11 +64,7 @@ class WaypointUpdater(object):
         # Loop Event for updating final_waypoints
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
-            self.mutex.acquire()
-            try:
-                self.waypoints_updater()
-            finally:
-                self.mutex.release()
+            self.waypoints_updater()
             rate.sleep()
 
     def waypoints_updater(self):
@@ -77,7 +73,7 @@ class WaypointUpdater(object):
             if self.next_waypoint_id:
                 rospy.loginfo("next waypoint id = %d" , self.next_waypoint_id)
             if self.gt_tl_waypoint_id:
-                rospy.loginfo("TL waypoint id = %d", self.gt_tl_waypoint_id)
+                rospy.loginfo("TL waypoint id = %d with state = %d", self.gt_tl_waypoint_id[0], self.gt_tl_waypoint_id[1])
             final_waypoints = self.get_final_waypoints(self.base_waypoints.waypoints, self.next_waypoint_id,
                                                        self.next_waypoint_id+LOOKAHEAD_WPS)
 
@@ -140,46 +136,34 @@ class WaypointUpdater(object):
     def gt_traffic_cb(self,msg):
 
         # process ground truth information to get nearest Traffic light and its corrosponding waypoint id
-        self.gt_tl_waypoint_id = None
-        # self.mutex.acquire()
-        # try:
-        if self.current_pose is not None:
-            current_pose_x = self.current_pose.pose.position.x
-            current_pose_y = self.current_pose.pose.position.y
+        # self.gt_tl_waypoint_id = None
 
-            trafficlight_array = deepcopy(msg.lights)
+        trafficlight_array = msg.lights
+
+        # rospy.loginfo("state = %d", np.uint8(trafficlight_array[0].state))
+
+        if self.base_waypoints and self.current_pose is not None: #and not trafficlight_array[0].state:
+            current_pose = deepcopy(self.current_pose)
+            current_pose_x = current_pose.pose.position.x
+            current_pose_y = current_pose.pose.position.y
 
             min_dist = float('inf')
+
             nearest_point_id = None
             for id in range(len(trafficlight_array)):
                 tl_x = trafficlight_array[id].pose.pose.position.x
                 tl_y = trafficlight_array[id].pose.pose.position.y
-                # print "light id = ", id , ' has state = ', trafficlight_array[id].state
+
                 dist = np.sqrt((current_pose_x - tl_x) ** 2 + (current_pose_y - tl_y) ** 2)
                 if dist < min_dist:
                     min_dist = dist
                     nearest_point_id = id
 
-            # print "tf list id", nearest_point_id
-            if (nearest_point_id is not None) and (trafficlight_array[nearest_point_id].state == 0):
-                self.gt_tl_waypoint_id = self.nearest_waypoint(
+            if nearest_point_id is not None:
+                self.gt_tl_waypoint_id = (self.nearest_waypoint(
                     trafficlight_array[nearest_point_id].pose.pose.position.x,
                     trafficlight_array[nearest_point_id].pose.pose.position.y,
-                    self.base_waypoints)
-
-                # print "state", trafficlight_array[nearest_point_id].state
-                # if gt_nearest_wp > self.next_waypoint_id:
-                #     self.gt_tl_waypoint_id = gt_nearest_wp
-                # else:
-                #     self.gt_tl_waypoint_id = None
-
-                # else:
-                #     self.gt_tl_waypoint_id = None
-        # except:
-        #     print "can't process GT TL"
-        # finally:
-        #     self.mutex.release()
-
+                    self.base_waypoints),trafficlight_array[nearest_point_id].state)
 
 
     def velocity_cb(self,msg):
