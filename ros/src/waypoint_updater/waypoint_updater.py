@@ -38,10 +38,7 @@ class WaypointUpdater(object):
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
-        rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
-
-        # Stub ground truth information of Traffic light status
-        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.gt_traffic_cb)
+        # rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
@@ -50,7 +47,7 @@ class WaypointUpdater(object):
 
         self.base_waypoints = None
         self.current_pose = None
-        self.current_velocity = None
+        # self.current_velocity = None
         self.next_waypoint_id = None
         self.traffic_light_waypoint_id = None
         self.obstacle_waypoint_id = None
@@ -58,11 +55,11 @@ class WaypointUpdater(object):
         self.max_velocity_mps = rospy.get_param("/waypoint_loader/velocity") * 0.277778 # transform km/h to m/s
         self.max_deceleration = np.fabs(rospy.get_param("/dbw_node/decel_limit"))
         self.tl_stop_buffer = 5.0  # safe buffer distance before traffic light in meters
-        self.gt_tl_waypoint_id = None
+        # self.gt_tl_waypoint_id = None
 
 
         # Loop Event for updating final_waypoints
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(5)
         while not rospy.is_shutdown():
             self.waypoints_updater()
             rate.sleep()
@@ -72,8 +69,6 @@ class WaypointUpdater(object):
             self.next_waypoint_id = self.get_next_waypoint(self.current_pose, self.base_waypoints)
             if self.next_waypoint_id:
                 rospy.loginfo("next waypoint id = %d" , self.next_waypoint_id)
-            if self.gt_tl_waypoint_id:
-                rospy.loginfo("TL waypoint id = %d with state = %d", self.gt_tl_waypoint_id[0], self.gt_tl_waypoint_id[1])
             final_waypoints = self.get_final_waypoints(self.base_waypoints.waypoints, self.next_waypoint_id,
                                                        self.next_waypoint_id+LOOKAHEAD_WPS)
 
@@ -133,42 +128,42 @@ class WaypointUpdater(object):
 
         return final_waypoints
 
-    def gt_traffic_cb(self,msg):
+    # def gt_traffic_cb(self,msg):
+    #
+    #     # process ground truth information to get nearest Traffic light and its corrosponding waypoint id
+    #     # self.gt_tl_waypoint_id = None
+    #
+    #     trafficlight_array = msg.lights
+    #
+    #     # rospy.loginfo("state = %d", np.uint8(trafficlight_array[0].state))
+    #
+    #     if self.base_waypoints and self.current_pose is not None: #and not trafficlight_array[0].state:
+    #         current_pose = deepcopy(self.current_pose)
+    #         current_pose_x = current_pose.pose.position.x
+    #         current_pose_y = current_pose.pose.position.y
+    #
+    #         min_dist = float('inf')
+    #
+    #         nearest_point_id = None
+    #         for id in range(len(trafficlight_array)):
+    #             tl_x = trafficlight_array[id].pose.pose.position.x
+    #             tl_y = trafficlight_array[id].pose.pose.position.y
+    #
+    #             dist = np.sqrt((current_pose_x - tl_x) ** 2 + (current_pose_y - tl_y) ** 2)
+    #             if dist < min_dist:
+    #                 min_dist = dist
+    #                 nearest_point_id = id
+    #
+    #         if nearest_point_id is not None:
+    #             self.gt_tl_waypoint_id = (self.nearest_waypoint(
+    #                 trafficlight_array[nearest_point_id].pose.pose.position.x,
+    #                 trafficlight_array[nearest_point_id].pose.pose.position.y,
+    #                 self.base_waypoints),trafficlight_array[nearest_point_id].state)
 
-        # process ground truth information to get nearest Traffic light and its corrosponding waypoint id
-        # self.gt_tl_waypoint_id = None
 
-        trafficlight_array = msg.lights
-
-        # rospy.loginfo("state = %d", np.uint8(trafficlight_array[0].state))
-
-        if self.base_waypoints and self.current_pose is not None: #and not trafficlight_array[0].state:
-            current_pose = deepcopy(self.current_pose)
-            current_pose_x = current_pose.pose.position.x
-            current_pose_y = current_pose.pose.position.y
-
-            min_dist = float('inf')
-
-            nearest_point_id = None
-            for id in range(len(trafficlight_array)):
-                tl_x = trafficlight_array[id].pose.pose.position.x
-                tl_y = trafficlight_array[id].pose.pose.position.y
-
-                dist = np.sqrt((current_pose_x - tl_x) ** 2 + (current_pose_y - tl_y) ** 2)
-                if dist < min_dist:
-                    min_dist = dist
-                    nearest_point_id = id
-
-            if nearest_point_id is not None:
-                self.gt_tl_waypoint_id = (self.nearest_waypoint(
-                    trafficlight_array[nearest_point_id].pose.pose.position.x,
-                    trafficlight_array[nearest_point_id].pose.pose.position.y,
-                    self.base_waypoints),trafficlight_array[nearest_point_id].state)
-
-
-    def velocity_cb(self,msg):
-        self.current_velocity = msg.twist.linear.x
-        # rospy.loginfo("current_velocity = %s", str(self.current_velocity))
+    # def velocity_cb(self,msg):
+    #     self.current_velocity = msg.twist.linear.x
+    #     # rospy.loginfo("current_velocity = %s", str(self.current_velocity))
 
     def pose_cb(self, msg):
 
