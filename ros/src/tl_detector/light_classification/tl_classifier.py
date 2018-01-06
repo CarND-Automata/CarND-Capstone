@@ -7,7 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Frozen inference graph files. NOTE: change the path to where you saved the models.
-SSD_GRAPH_FILE = 'ssd_mobilenet_v1_coco_2017_11_17/frozen_inference_graph.pb'
+#SSD_GRAPH_FILE = 'frozen_sim_inception/frozen_inference_graph.pb'
+SSD_GRAPH_FILE = 'frozen_real_inception/frozen_inference_graph.pb'
 
 
 #
@@ -98,6 +99,9 @@ class TLClassifier(object):
         """
         image_np = np.expand_dims(np.asarray(image, dtype=np.uint8), 0)
 
+        distance = 1e6
+        state = TrafficLight.UNKNOWN
+
         with tf.Session(graph=self.graph) as sess:
             # Actual detection.
             (boxes, scores, classes) = sess.run([self.detection_boxes, self.detection_scores, self.detection_classes],
@@ -108,7 +112,7 @@ class TLClassifier(object):
             scores = np.squeeze(scores)
             classes = np.squeeze(classes)
 
-            confidence_cutoff = 0.8
+            confidence_cutoff = 0.2
             # Filter boxes with a confidence score less than `confidence_cutoff`
             boxes, scores, classes = filter_boxes(confidence_cutoff, boxes, scores, classes)
 
@@ -122,4 +126,33 @@ class TLClassifier(object):
 
             #plt.figure(figsize=(12, 8))
             #plt.imshow(image)
-        return TrafficLight.UNKNOWN
+
+            # pick the closes traffic light
+            for i in range(boxes.shape[0]):
+                if scores is None or scores[i] > confidence_cutoff:
+                    class_name = classes[i]
+                    print('{}'.format(class_name), scores[i])
+
+                    #fx = 0.97428
+                    #fy = 1.73205
+
+                    fx = 1345.200806
+                    fy = 1353.838257
+                    
+                    perceived_width_x = (boxes[i][3] - boxes[i][1]) * 800
+                    perceived_width_y = (boxes[i][2] - boxes[i][0]) * 600
+
+                    # ymin, xmin, ymax, xmax = box
+                    # depth_prime = (width_real * focal) / perceived_width
+                    perceived_depth_x = ((.1 * fx) / perceived_width_x)
+                    perceived_depth_y = ((.3 * fy) / perceived_width_y)
+
+                    estimated_distance = (perceived_depth_x + perceived_depth_y) / 2
+                    if estimated_distance < distance:
+                        distance = estimated_distance;
+                        state = TrafficLight(class_name)
+                        print("state ", state )
+                        print("Distance (metres)", estimated_distance)
+
+
+        return distance, state
