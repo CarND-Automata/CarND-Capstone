@@ -25,7 +25,6 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
-USE_GT_TRAFFIC = True
 TAFFIC_ACTIVATED = False
 
 class WaypointUpdater(object):
@@ -43,7 +42,7 @@ class WaypointUpdater(object):
 
         # TODO: Add other member variables you need below
 
-        self.mutex = Lock()
+        # self.mutex = Lock()
 
         self.base_waypoints = None
         self.current_pose = None
@@ -52,14 +51,14 @@ class WaypointUpdater(object):
         self.traffic_light_waypoint_id = None
         self.obstacle_waypoint_id = None
 
-        self.max_velocity_mps = rospy.get_param("/waypoint_loader/velocity") * 0.277778 # transform km/h to m/s
-        self.max_deceleration = np.fabs(rospy.get_param("/dbw_node/decel_limit"))
+        # self.max_velocity_mps = rospy.get_param("/waypoint_loader/velocity") * 0.277778  # transform km/h to m/s
+        self.deceleration = 1
         self.tl_stop_buffer = 5.0  # safe buffer distance before traffic light in meters
         # self.gt_tl_waypoint_id = None
 
 
         # Loop Event for updating final_waypoints
-        rate = rospy.Rate(5)
+        rate = rospy.Rate(20)
         while not rospy.is_shutdown():
             self.waypoints_updater()
             rate.sleep()
@@ -67,10 +66,10 @@ class WaypointUpdater(object):
     def waypoints_updater(self):
         if self.base_waypoints and self.current_pose:
             self.next_waypoint_id = self.get_next_waypoint(self.current_pose, self.base_waypoints)
-            if self.next_waypoint_id:
-                rospy.loginfo("next waypoint id = %d" , self.next_waypoint_id)
+            # if self.next_waypoint_id:
+            #     rospy.loginfo("next waypoint id = %d" , self.next_waypoint_id)
             final_waypoints = self.get_final_waypoints(self.base_waypoints.waypoints, self.next_waypoint_id,
-                                                       self.next_waypoint_id+LOOKAHEAD_WPS)
+                                                       self.next_waypoint_id+LOOKAHEAD_WPS,self.traffic_light_waypoint_id)
 
             lane = Lane()
             lane.header.stamp = rospy.Time().now()
@@ -113,18 +112,51 @@ class WaypointUpdater(object):
 
         return nearest_point_id
 
-    def get_final_waypoints(self, waypoints, start_wp, end_wp):
+    def get_final_waypoints(self, waypoints, start_wp, end_wp, tf_waypoint_id):
 
         final_waypoints = []
-        for i in range(start_wp, end_wp):
-            index = i % len(waypoints)
-            wp = Waypoint()
-            wp.pose.pose.position.x = waypoints[index].pose.pose.position.x
-            wp.pose.pose.position.y = waypoints[index].pose.pose.position.y
-            wp.pose.pose.position.z = waypoints[index].pose.pose.position.z
-            wp.pose.pose.orientation = waypoints[index].pose.pose.orientation
-            wp.twist.twist.linear.x = waypoints[index].twist.twist.linear.x
-            final_waypoints.append(wp)
+        # self.decelerate = False
+        if tf_waypoint_id != -1 and tf_waypoint_id in range(start_wp,end_wp,1):
+            # rospy.loginfo("traffic light ahead with dist = {}".format(self.distance(waypoints,start_wp,tf_waypoint_id)))
+            # self.decelerate = True
+
+            for i in range(start_wp, tf_waypoint_id):
+                index = i % len(waypoints)
+                wp = Waypoint()
+                wp.pose.pose.position.x = waypoints[index].pose.pose.position.x
+                wp.pose.pose.position.y = waypoints[index].pose.pose.position.y
+                wp.pose.pose.position.z = waypoints[index].pose.pose.position.z
+                wp.pose.pose.orientation = waypoints[index].pose.pose.orientation
+                dist = self.distance(waypoints, i, tf_waypoint_id)
+                if dist < self.tl_stop_buffer:
+                    wp.twist.twist.linear.x = 0.0
+                else:
+                    wp.twist.twist.linear.x = min(waypoints[index].twist.twist.linear.x,
+                                                  math.sqrt(2 * self.deceleration * max(0.0,dist-self.tl_stop_buffer)))
+                # else:
+                #     wp.twist.twist.linear.x = waypoints[index].twist.twist.linear.x
+
+                final_waypoints.append(wp)
+
+            for i in range(tf_waypoint_id, end_wp):
+                index = i % len(waypoints)
+                wp = Waypoint()
+                wp.pose.pose.position.x = waypoints[index].pose.pose.position.x
+                wp.pose.pose.position.y = waypoints[index].pose.pose.position.y
+                wp.pose.pose.position.z = waypoints[index].pose.pose.position.z
+                wp.pose.pose.orientation = waypoints[index].pose.pose.orientation
+                wp.twist.twist.linear.x = 0
+                final_waypoints.append(wp)
+        else:
+            for i in range(start_wp, end_wp):
+                index = i % len(waypoints)
+                wp = Waypoint()
+                wp.pose.pose.position.x = waypoints[index].pose.pose.position.x
+                wp.pose.pose.position.y = waypoints[index].pose.pose.position.y
+                wp.pose.pose.position.z = waypoints[index].pose.pose.position.z
+                wp.pose.pose.orientation = waypoints[index].pose.pose.orientation
+                wp.twist.twist.linear.x = waypoints[index].twist.twist.linear.x
+                final_waypoints.append(wp)
 
         return final_waypoints
 
