@@ -6,10 +6,10 @@ Self-Driving Car Nanodegree: Programming a Real Self-Driving Car.
 ## Team Members
 
 This repository is maintained by the following:
-- [Mohamed Ibrahim](mohamedibrahim3435@gmail.com)
-- [Andrew Kamal](andrewkamal@gmail.com)
-- [Natalia Balcu](natalia.balcu@gmail.com)
-- [Adilbii Kanzitdinov](addick@me.com)
+- [Mohamed Ibrahim] (mohamedibrahim3435@gmail.com)
+- [Andrew Kamal] (andrewkamal@gmail.com)
+- [Natalia Balcu] (natalia.balcu@gmail.com)
+- [Adilbii Kanzitdinov] (addick@me.com)
 
 
 
