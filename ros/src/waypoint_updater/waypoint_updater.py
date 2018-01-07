@@ -46,15 +46,12 @@ class WaypointUpdater(object):
 
         self.base_waypoints = None
         self.current_pose = None
-        # self.current_velocity = None
         self.next_waypoint_id = None
         self.traffic_light_waypoint_id = None
         self.obstacle_waypoint_id = None
 
-        # self.max_velocity_mps = rospy.get_param("/waypoint_loader/velocity") * 0.277778  # transform km/h to m/s
         self.deceleration = 1
-        self.tl_stop_buffer = 5.0  # safe buffer distance before traffic light in meters
-        # self.gt_tl_waypoint_id = None
+        self.tl_stop_buffer = 10.0  # safe buffer distance before traffic light in meters
 
 
         # Loop Event for updating final_waypoints
@@ -115,10 +112,7 @@ class WaypointUpdater(object):
     def get_final_waypoints(self, waypoints, start_wp, end_wp, tf_waypoint_id):
 
         final_waypoints = []
-        # self.decelerate = False
         if tf_waypoint_id != -1 and tf_waypoint_id in range(start_wp,end_wp,1):
-            # rospy.loginfo("traffic light ahead with dist = {}".format(self.distance(waypoints,start_wp,tf_waypoint_id)))
-            # self.decelerate = True
 
             for i in range(start_wp, tf_waypoint_id):
                 index = i % len(waypoints)
@@ -133,8 +127,7 @@ class WaypointUpdater(object):
                 else:
                     wp.twist.twist.linear.x = min(waypoints[index].twist.twist.linear.x,
                                                   math.sqrt(2 * self.deceleration * max(0.0,dist-self.tl_stop_buffer)))
-                # else:
-                #     wp.twist.twist.linear.x = waypoints[index].twist.twist.linear.x
+
 
                 final_waypoints.append(wp)
 

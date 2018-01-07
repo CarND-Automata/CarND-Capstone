@@ -58,7 +58,7 @@ class GT_TL_Pub(object):
 
     def gt_traffic_cb(self,msg):
         # t_0 = rospy.get_time()
-        # self.mutex.acquire()
+        self.mutex.acquire()
 
         # process ground truth information to get nearest Traffic light and its corrosponding waypoint id
         self.gt_tl_waypoint_id = -1
@@ -92,7 +92,7 @@ class GT_TL_Pub(object):
             elif np.uint8(trafficlight_array[0].state):
                 self.gt_tl_waypoint_id = -1
 
-        # self.mutex.release()
+        self.mutex.release()
         # rospy.loginfo("processig time = {}".format(t_0 - rospy.get_time()))
 
     def pose_cb(self, msg):
