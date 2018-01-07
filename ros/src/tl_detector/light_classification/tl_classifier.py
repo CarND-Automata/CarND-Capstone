@@ -138,7 +138,7 @@ class TLClassifier(object):
 
                     fx = 1345.200806
                     fy = 1353.838257
-                    
+
                     perceived_width_x = (boxes[i][3] - boxes[i][1]) * 800
                     perceived_width_y = (boxes[i][2] - boxes[i][0]) * 600
 
