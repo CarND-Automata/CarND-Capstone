@@ -29,7 +29,7 @@ class TwistController(object):
         velocity_error = target_velocity - current_velocity
 
         throttle = self.throttle_controller.step(velocity_error, dt)
-        throttle = self.throttle_lpf.filt(throttle)
+        # throttle = self.throttle_lpf.filt(throttle)
 
         steer = self.steering_controller.get_steering(target_velocity, target_yaw_rate, current_velocity)
         steer = self.steering_lpf.filt(steer)
