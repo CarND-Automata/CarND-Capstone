@@ -4,11 +4,17 @@ from PIL import ImageDraw
 from PIL import ImageColor
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
+import os 
+
+# import matplotlib.pyplot as plt
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 
 # Frozen inference graph files. NOTE: change the path to where you saved the models.
-#SSD_GRAPH_FILE = 'frozen_sim_inception/frozen_inference_graph.pb'
+# SSD_GRAPH_FILE = 'frozen_sim_inception/frozen_inference_graph.pb'
 SSD_GRAPH_FILE = 'frozen_real_inception/frozen_inference_graph.pb'
+GRAPH_PATH = dir_path + "/" + SSD_GRAPH_FILE
 
 
 #
@@ -63,11 +69,17 @@ class TLClassifier(object):
     def __init__(self):
 
 
-        """Loads a frozen inference graph"""
+        """
+        Loads a frozen inference graph
+        We pass the path to inference graph file to initializer,
+        because the absolute path provided above is not correct when
+        TL classifier is instanciated from other files 
+        """
+
         self.graph = tf.Graph()
         with self.graph.as_default():
             od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(SSD_GRAPH_FILE, 'rb') as fid:
+            with tf.gfile.GFile(GRAPH_PATH, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
@@ -85,7 +97,6 @@ class TLClassifier(object):
 
         # The classification of the object (integer id).
         self.detection_classes = self.graph.get_tensor_by_name('detection_classes:0')
-
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -118,11 +129,11 @@ class TLClassifier(object):
 
             # The current box coordinates are normalized to a range between 0 and 1.
             # This converts the coordinates actual location on the image.
-            width, height = image.size
-            box_coords = to_image_coords(boxes, height, width)
+            width, height, _ = image.shape
+            # box_coords = to_image_coords(boxes, height, width)
 
             # Each class with be represented by a differently colored box
-            draw_boxes(image, box_coords, classes)
+            # draw_boxes(image, box_coords, classes)
 
             #plt.figure(figsize=(12, 8))
             #plt.imshow(image)
@@ -131,6 +142,7 @@ class TLClassifier(object):
             for i in range(boxes.shape[0]):
                 if scores is None or scores[i] > confidence_cutoff:
                     class_name = classes[i]
+
                     print('{}'.format(class_name), scores[i])
 
                     #fx = 0.97428
@@ -150,9 +162,11 @@ class TLClassifier(object):
                     estimated_distance = (perceived_depth_x + perceived_depth_y) / 2
                     if estimated_distance < distance:
                         distance = estimated_distance;
-                        state = TrafficLight(class_name)
-                        print("state ", state )
+                        state = int(class_name)
+                        # print("state ", state )
                         print("Distance (metres)", estimated_distance)
 
 
         return distance, state
+
+
