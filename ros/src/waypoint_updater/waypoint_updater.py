@@ -81,7 +81,7 @@ class WaypointUpdater(object):
             waypoint_x = waypoint.pose.pose.position.x
             waypoint_y = waypoint.pose.pose.position.y
 
-            dist = np.sqrt((waypoint_x-x)**2 + (waypoint_y-y)**2)
+            dist = (waypoint_x-x)**2 + (waypoint_y-y)**2
             if dist < min_dist:
                 min_dist = dist
                 nearest_point_id = id

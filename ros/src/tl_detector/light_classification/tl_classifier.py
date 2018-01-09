@@ -70,10 +70,7 @@ class TLClassifier(object):
 
 
         """
-        Loads a frozen inference graph
-        We pass the path to inference graph file to initializer,
-        because the absolute path provided above is not correct when
-        TL classifier is instanciated from other files 
+        Loads  frozen inference graph and initiates the classifier
         """
 
         self.graph = tf.Graph()
@@ -129,7 +126,7 @@ class TLClassifier(object):
 
             # The current box coordinates are normalized to a range between 0 and 1.
             # This converts the coordinates actual location on the image.
-            width, height, _ = image.shape
+            # width, height, _ = image.shape
             # box_coords = to_image_coords(boxes, height, width)
 
             # Each class with be represented by a differently colored box
